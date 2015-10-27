@@ -88,7 +88,8 @@ class HbpOAuthenticator(OAuthenticator):
         """append callback_url with next query param if present"""
         redirect_uri = self.oauth_callback_url
         if handler.get_query_argument('next', None):
-            redirect_uri += '?next=%s' % escape.url_escape(handler.get_query_argument('next'))
+            redirect_uri += '?next=%s' % handler.get_query_argument('next')
+        self.log.debug('redirect uri in callback: %r', redirect_uri)
         return redirect_uri
 
     @gen.coroutine
