@@ -5,7 +5,7 @@ Custom Authenticator to use HBP OIDC with JupyterHub
 import json
 
 from tornado.auth import OAuth2Mixin
-from tornado import gen, web
+from tornado import gen, web, escape
 
 from tornado.httputil import url_concat
 from tornado.httpclient import HTTPRequest, AsyncHTTPClient
@@ -13,7 +13,7 @@ from tornado.httpclient import HTTPRequest, AsyncHTTPClient
 from traitlets import Unicode
 from traitlets.config.application import get_config
 
-from oauthenticator.oauth2 import OAuthLoginHandler, OAuthenticator
+from oauthenticator.oauth2 import OAuthLoginHandler, OAuthenticator, OAuthCallbackHandler
 
 # load env from config
 c = get_config()
@@ -36,7 +36,41 @@ class HbpMixin(OAuth2Mixin):
 
 
 class HbpLoginHandler(OAuthLoginHandler, HbpMixin):
-    pass
+    '''customized OAuthLoginHandler'''
+    def get(self):
+        redirect_uri = self.authenticator.oauth_callback_url
+        if self.get_query_argument('next', None):
+            redirect_uri += '?next=%s' % escape.url_escape(self.get_query_argument('next'))
+
+        self.log.info('oauth redirect: %r', redirect_uri)
+
+        self.authorize_redirect(
+            redirect_uri=redirect_uri,
+            client_id=self.authenticator.client_id,
+            scope=[],
+            response_type='code')
+
+
+class HBPCallbackHandler(OAuthCallbackHandler):
+    """Custom handler for OAuth callback.
+    Calls authenticator to verify username.
+    Support next query argument to customize redirect
+    """
+    @gen.coroutine
+    def get(self):
+        # TODO: Check if state argument needs to be checked
+        username = yield self.authenticator.authenticate(self)
+        if username:
+            user = self.user_from_username(username)
+            self.set_login_cookie(user)
+
+            if self.get_query_argument('next', None):
+                self.redirect(escape.url_unescape(self.get_query_argument('next')))
+            else:
+                self.redirect(url_path_join(self.hub.server.base_url, 'home'))
+        else:
+            # todo: custom error page?
+            raise web.HTTPError(403)
 
 
 class HbpOAuthenticator(OAuthenticator):
@@ -48,6 +82,15 @@ class HbpOAuthenticator(OAuthenticator):
     client_secret_env = 'HBP_CLIENT_SECRET'
     login_handler = HbpLoginHandler
     oauth_callback_url = Unicode(config=True)
+    callback_handler = HBPCallbackHandler
+
+    def _get_redirect_uri(self, handler):
+        """append callback_url with next query param if present"""
+        redirect_uri = self.oauth_callback_url
+        if handler.get_query_argument('next', None):
+            redirect_uri += '?next=%s' % handler.get_query_argument('next')
+        self.log.debug('redirect uri in callback: %r', redirect_uri)
+        return redirect_uri
 
     @gen.coroutine
     def authenticate(self, handler):
@@ -62,7 +105,7 @@ class HbpOAuthenticator(OAuthenticator):
             client_id=self.client_id,
             client_secret=self.client_secret,
             code=code,
-            redirect_uri=self.oauth_callback_url,
+            redirect_uri=self._get_redirect_uri(handler),
             grant_type='authorization_code'
         )
 
