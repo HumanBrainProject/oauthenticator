@@ -4,6 +4,8 @@ Custom Authenticator to use HBP OIDC with JupyterHub
 
 import json
 
+from jupyterhub.utils import url_path_join
+
 from tornado.auth import OAuth2Mixin
 from tornado import gen, web, escape
 
