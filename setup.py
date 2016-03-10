@@ -32,7 +32,7 @@ here = os.path.abspath(os.path.dirname(__file__))
 
 # Get the current package version.
 version_ns = {}
-with open(pjoin(here, 'version.py')) as f:
+with open(pjoin(here, 'oauthenticator', '_version.py')) as f:
     exec(f.read(), {}, version_ns)
 
 
@@ -40,11 +40,11 @@ setup_args = dict(
     name                = 'oauthenticator',
     packages            = ['oauthenticator'],
     version             = version_ns['__version__'],
-    description         = """OAuthenticator: Authenticate JupyterHub users with GitHub OAuth.""",
-    long_description    = "",
+    description         = """OAuthenticator: Authenticate JupyterHub users with common OAuth providers.""",
+    long_description    = "Adds support for JupyterHub authenticating with OAuth providers, including GitHub, Bitbucket, and more.",
     author              = "Jupyter Development Team",
-    author_email        = "ipython-dev@scipy.org",
-    url                 = "http://jupyter.org",
+    author_email        = "jupyter@googlegroups.com",
+    url                 = "https://jupyter.org",
     license             = "BSD",
     platforms           = "Linux, Mac OS X",
     keywords            = ['Interactive', 'Interpreter', 'Shell', 'Web'],
@@ -57,6 +57,9 @@ setup_args = dict(
         'Programming Language :: Python :: 3',
     ],
 )
+
+if 'bdist_wheel' in sys.argv:
+    import setuptools
 
 # setuptools requirements
 if 'setuptools' in sys.modules:

@@ -14,13 +14,16 @@ container.
 
 ## Installation
 
-First, install dependencies:
+Install with pip:
 
-    pip install -r requirements.txt
+    pip3 install oauthenticator
 
-Then, install the package:
+Or clone the repo and do a dev install:
 
-    python setup.py install
+    git clone https://github.com/jupyter/oauthenticator.git
+    cd oauthenticator
+    pip3 install -e .
+
 
 ## Setup
 
