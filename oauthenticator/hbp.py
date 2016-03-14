@@ -149,7 +149,7 @@ class HbpOAuthenticator(OAuthenticator):
                 command = ' '.join([command, self.client_secret_env,
                                    self.token_info['refresh_token']])
             else:
-                command = ' '.join([self.client_secret_env,
+                command = ' '.join([self.client_secret,
                                    self.token_info['refresh_token']])
             self.log.debug('spawner command: "%s"' % command)
             spawner.extra_create_kwargs['command'] = command
