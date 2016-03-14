@@ -85,6 +85,7 @@ class HbpOAuthenticator(OAuthenticator):
     login_handler = HbpLoginHandler
     oauth_callback_url = Unicode(config=True)
     callback_handler = HBPCallbackHandler
+    token_info = None
 
     def _get_redirect_uri(self, handler):
         """append callback_url with next query param if present"""
@@ -122,6 +123,7 @@ class HbpOAuthenticator(OAuthenticator):
         resp_json = json.loads(resp.body.decode('utf8', 'replace'))
 
         access_token = resp_json['access_token']
+        self.token_info = resp_json
 
         # Determine who the logged in user is
         headers = {"Accept": "application/json",
@@ -137,3 +139,15 @@ class HbpOAuthenticator(OAuthenticator):
 
         # return user's sciper
         return resp_json["id"]
+
+    def pre_spawn_start(self, _, spawner):
+        '''update docker spawner create args'''
+        self.log.info('Passing refresh token to spawner')
+        if hasattr(spawner, 'extra_create_kwargs'):
+            command = spawner.extra_create_kwargs.get('command')
+            if command:
+                command += ' ' + self.token_info['refresh_token']
+            else:
+                command = self.token_info['refresh_token']
+            self.log.debug('spawner command: "%s"' % command)
+            spawner.extra_create_kwargs['command'] = command
