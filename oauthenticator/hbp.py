@@ -144,6 +144,8 @@ class HbpOAuthenticator(OAuthenticator):
         '''update docker spawner create args'''
         self.log.info('Passing refresh token to spawner')
         if hasattr(spawner, 'extra_create_kwargs'):
-            command = '%s %s %s %s' % (env, self.client_id, self.client_secret,
-                                       self.token_info['refresh_token'])
+            refresh_token = 'refresh_token_is_not_set'
+            if self.token_info:
+                refresh_token = self.token_info.get('refresh_token', refresh_token)
+            command = '%s %s %s %s' % (env, self.client_id, self.client_secret, refresh_token)
             spawner.extra_create_kwargs['command'] = command
