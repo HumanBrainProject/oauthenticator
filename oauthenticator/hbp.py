@@ -3,6 +3,7 @@ Custom Authenticator to use HBP OIDC with JupyterHub
 """
 
 import json
+import os
 
 from jupyterhub.utils import url_path_join
 
@@ -19,7 +20,7 @@ from oauthenticator.oauth2 import OAuthLoginHandler, OAuthenticator, OAuthCallba
 
 # load env from config
 c = get_config()
-env = c.HbpOAuthenticator.env
+env = os.getenv('ENV')
 
 if env in ['dev', 'staging']:
     HBP_HOST = 'services-%s.humanbrainproject.eu/oidc' % env
