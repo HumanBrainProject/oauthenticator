@@ -4,6 +4,7 @@ Custom Authenticator to use HBP OIDC with JupyterHub
 
 import json
 import os
+import errno
 
 from jupyterhub.utils import url_path_join
 
