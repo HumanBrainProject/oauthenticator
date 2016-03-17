@@ -86,7 +86,21 @@ class HbpOAuthenticator(OAuthenticator):
     login_handler = HbpLoginHandler
     oauth_callback_url = Unicode(config=True)
     callback_handler = HBPCallbackHandler
-    token_info = None
+    token_dir = Unicode(config=True,
+                        help="""Directory in which to store user refres tokens.""")
+    def _token_dir_changed(self, name, old, new):
+        # ensure dir exists
+        if not new:
+            return
+
+        try:
+            os.mkdir(new)
+        except OSError as e:
+            if e.errno != errno.EEXIST:
+                raise
+
+        # make it private
+        os.chmod(new, 0o700)
 
     def _get_redirect_uri(self, handler):
         """append callback_url with next query param if present"""
@@ -124,7 +138,7 @@ class HbpOAuthenticator(OAuthenticator):
         resp_json = json.loads(resp.body.decode('utf8', 'replace'))
 
         access_token = resp_json['access_token']
-        self.token_info = resp_json
+        refresh_token = resp_json.get('refresh_token', 'no refresh_token')
 
         # Determine who the logged in user is
         headers = {"Accept": "application/json",
@@ -138,15 +152,39 @@ class HbpOAuthenticator(OAuthenticator):
         resp = yield http_client.fetch(req)
         resp_json = json.loads(resp.body.decode('utf8', 'replace'))
 
+        self.save_refresh_token(resp_json['id'], refresh_token)
+
         # return user's sciper
         return resp_json["id"]
 
-    def pre_spawn_start(self, _, spawner):
+    def save_refresh_token(self, username, token):
+        '''Save user refresh token'''
+        token_path = self._user_token_path(username)
+        if os.path.isfile(token_path):
+            self.log.info("Overriding token for %s in %s", username, token_path)
+        else:
+            self.log.info("Saving token for %s in %s", username, token_path)
+        with open(token_path, 'w') as f:
+            f.write(token)
+
+    def refresh_token(self, username):
+        '''Return refresh_token for the given user'''
+        token_path = self._user_token_path(username)
+        self.log.info("Loading token for %s from %s", username, token_path)
+        if not os.path.isfile(token_path):
+            self.log.error('No token file for user %s: %s', username, token_path)
+            return 'no token file'
+        with open(token_path) as f:
+            return f.read()
+
+    def pre_spawn_start(self, user, spawner):
         '''update docker spawner create args'''
         self.log.info('Passing refresh token to spawner')
         if hasattr(spawner, 'extra_create_kwargs'):
-            refresh_token = 'refresh_token_is_not_set'
-            if self.token_info:
-                refresh_token = self.token_info.get('refresh_token', refresh_token)
-            command = '%s %s %s %s' % (env, self.client_id, self.client_secret, refresh_token)
+            command = '%s %s %s %s' % (env, self.client_id, self.client_secret,
+                                       self.refresh_token(user.name))
             spawner.extra_create_kwargs['command'] = command
+
+    def _user_token_path(self, username):
+        '''return path to store/load the token'''
+        return os.path.join(self.token_dir, username + '.token')
