@@ -28,7 +28,7 @@ if env in ['dev', 'staging']:
 else:
     HBP_HOST = 'services.humanbrainproject.eu/oidc'
 
-HBP_USERINFO_URL = '%s/v1/api/user/me' % HBP_HOST
+HBP_USERINFO_URL = '%s/userinfo' % HBP_HOST
 
 
 class HbpMixin(OAuth2Mixin):
@@ -153,10 +153,10 @@ class HbpOAuthenticator(OAuthenticator):
         resp = yield http_client.fetch(req)
         resp_json = json.loads(resp.body.decode('utf8', 'replace'))
 
-        self.save_refresh_token(resp_json['id'], refresh_token)
+        self.save_refresh_token(resp_json['sub'], refresh_token)
 
         # return user's sciper
-        return resp_json["id"]
+        return resp_json["sub"]
 
     def save_refresh_token(self, username, token):
         '''Save user refresh token'''
