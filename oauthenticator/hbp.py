@@ -28,7 +28,7 @@ if env in ['dev', 'staging']:
 else:
     HBP_HOST = 'services.humanbrainproject.eu/oidc'
 
-HBP_USERINFO_URL = '%s/v0/api/user/me' % HBP_HOST
+HBP_USERINFO_URL = '%s/v1/api/user/me' % HBP_HOST
 
 
 class HbpMixin(OAuth2Mixin):
