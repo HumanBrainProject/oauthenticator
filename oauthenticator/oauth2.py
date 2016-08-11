@@ -21,6 +21,7 @@ class OAuthLoginHandler(BaseHandler):
     
     Typically subclasses will need
     """
+    scope = []
 
     def get(self):
         guess_uri = '{proto}://{host}{path}'.format(
@@ -38,7 +39,7 @@ class OAuthLoginHandler(BaseHandler):
         self.authorize_redirect(
             redirect_uri=redirect_uri,
             client_id=self.authenticator.client_id,
-            scope=[],
+            scope=self.scope,
             response_type='code')
 
 
@@ -47,7 +48,8 @@ class OAuthCallbackHandler(BaseHandler):
     @gen.coroutine
     def get(self):
         # TODO: Check if state argument needs to be checked
-        username = yield self.authenticator.authenticate(self)
+        username = yield self.authenticator.get_authenticated_user(self, None)
+
         if username:
             user = self.user_from_username(username)
             self.set_login_cookie(user)
@@ -98,5 +100,5 @@ class OAuthenticator(Authenticator):
         ]
     
     @gen.coroutine
-    def authenticate(self, handler):
+    def authenticate(self, handler, data=None):
         raise NotImplementedError()
